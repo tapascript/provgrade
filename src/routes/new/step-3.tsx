@@ -1,9 +1,15 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { provisionEnvironmentFn } from '../../server/capabilities'
 
 export const Route = createFileRoute('/new/step-3')({
   component: Step3,
+  beforeLoad: ({ search }) => {
+    const params = search as Partial<typeof search>
+    if (!params.name || !params.dbType || !params.region) {
+      throw redirect({ to: '/new/step-1' })
+    }
+  },
   validateSearch: (search: Record<string, unknown>) => {
     return {
       name: search.name as string,

@@ -1,5 +1,10 @@
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport, isStaticToolUIPart } from 'ai'
+import {
+  DefaultChatTransport,
+  getToolName,
+  isStaticToolUIPart,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+} from 'ai'
 import { HeadContent, Scripts, createRootRoute, Outlet } from '@tanstack/react-router'
 import { useState } from 'react'
 import appCss from '../styles.css?url'
@@ -34,10 +39,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const [chatInput, setChatInput] = useState('')
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, addToolApprovalResponse } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
+    // After the user approves/denies a tool, automatically send the response
+    // back to the server so the agent can continue (or skip) the tool.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
   })
 
   const onSubmit = (e: React.FormEvent) => {
@@ -80,12 +88,81 @@ function RootComponent() {
                 }
 
                 if (isStaticToolUIPart(part)) {
-                  const toolName = (part as any).toolName || part.type.replace(/^tool-/, '')
+                  const toolName = getToolName(part)
                   const toolCallId = part.toolCallId
-                  const state = part.state
-                  const args = (part as any).input || {}
+                  const args = (part.input ?? {}) as {
+                    name?: string
+                    dbType?: string
+                    region?: string
+                    targetTier?: string
+                    acceptedMonthlyCost?: number
+                  }
 
-                  if (state === 'output-available') {
+                  if (part.state === 'approval-requested') {
+                    return (
+                      <div
+                        key={toolCallId}
+                        className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded text-xs"
+                      >
+                        <strong className="text-amber-800 block mb-1">
+                          ⚠️ Approval required: {toolName}
+                        </strong>
+                        {toolName === 'upgrade_plan' && (
+                          <div className="space-y-0.5">
+                            <div>Tier: {args.targetTier}</div>
+                            <div>Cost: ${args.acceptedMonthlyCost}/mo</div>
+                          </div>
+                        )}
+                        {part.approval.requestReason && (
+                          <div className="mt-1 text-gray-600">
+                            {part.approval.requestReason}
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void addToolApprovalResponse({
+                                id: part.approval.id,
+                                approved: true,
+                              })
+                            }}
+                            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void addToolApprovalResponse({
+                                id: part.approval.id,
+                                approved: false,
+                                reason: 'Denied by user',
+                              })
+                            }}
+                            className="bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300"
+                          >
+                            Deny
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (part.state === 'approval-responded') {
+                    return (
+                      <div
+                        key={toolCallId}
+                        className="mt-2 text-xs text-gray-500 animate-pulse"
+                      >
+                        {part.approval.approved
+                          ? `Approved ${toolName}. Processing...`
+                          : `Denied ${toolName}.`}
+                      </div>
+                    )
+                  }
+
+                  if (part.state === 'output-available') {
                     if (toolName === 'provision_environment') {
                       return (
                         <div
@@ -117,6 +194,32 @@ function RootComponent() {
                         </div>
                       )
                     }
+                  }
+
+                  if (part.state === 'output-denied') {
+                    return (
+                      <div
+                        key={toolCallId}
+                        className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded text-xs text-gray-500"
+                      >
+                        <strong className="block mb-1">🚫 {toolName} denied</strong>
+                        {part.approval.reason && (
+                          <div>{part.approval.reason}</div>
+                        )}
+                      </div>
+                    )
+                  }
+
+                  if (part.state === 'output-error') {
+                    return (
+                      <div
+                        key={toolCallId}
+                        className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700"
+                      >
+                        <strong className="block mb-1">❌ {toolName} failed</strong>
+                        <div>{part.errorText}</div>
+                      </div>
+                    )
                   }
 
                   return (

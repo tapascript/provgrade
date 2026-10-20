@@ -1,8 +1,14 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 export const Route = createFileRoute('/new/step-2')({
   component: Step2,
+  beforeLoad: ({ search }) => {
+    const params = search as Partial<typeof search>
+    if (!params.name || !params.dbType) {
+      throw redirect({ to: '/new/step-1' })
+    }
+  },
   // This ensures TanStack Router strictly types the search params from Step 1
   validateSearch: (search: Record<string, unknown>) => {
     return {
