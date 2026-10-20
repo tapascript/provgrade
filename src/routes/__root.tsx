@@ -6,15 +6,21 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai'
 import { HeadContent, Scripts, createRootRoute, Outlet } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import appCss from '../styles.css?url'
+
+const TOOL_LABELS: Record<string, string> = {
+  provision_environment: 'Provision environment',
+  change_plan: 'Change plan',
+  delete_environment: 'Delete environment',
+}
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'DashFlow Infrastructure' },
+      { title: 'ProvGrade Infrastructure' },
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
@@ -38,6 +44,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const [chatInput, setChatInput] = useState('')
+  const [chatOpen, setChatOpen] = useState(true)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const { messages, sendMessage, status, addToolApprovalResponse } = useChat({
     transport: new DefaultChatTransport({
@@ -48,31 +56,56 @@ function RootComponent() {
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
   })
 
+  const isAwaitingApproval = messages.some((message) =>
+    message.parts.some(
+      (part) => isStaticToolUIPart(part) && part.state === 'approval-requested',
+    ),
+  )
+
+  const isBusy =
+    status === 'submitted' || status === 'streaming' || isAwaitingApproval
+
+  // Keep the chat pinned to the bottom as new messages / streaming chunks arrive.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages, isBusy])
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!chatInput.trim()) return
+    if (isBusy || !chatInput.trim()) return
 
     sendMessage({ text: chatInput })
     setChatInput('')
   }
 
-  const isBusy = status === 'submitted' || status === 'streaming'
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <main className="flex-1 p-8 mr-96">
+      <main className={`flex-1 p-8 ${chatOpen ? 'mr-96' : ''}`}>
         <header className="mb-8 border-b pb-4">
-          <h1 className="text-xl font-bold">DashFlow Infrastructure</h1>
+          <h1 className="text-xl font-bold">ProvGrade Infrastructure</h1>
         </header>
         <Outlet />
       </main>
 
-      <aside className="w-96 bg-white border-l shadow-xl flex flex-col h-screen fixed right-0 top-0">
-        <div className="p-4 bg-gray-900 text-white font-semibold">
-          AI Site Reliability Engineer
+      <aside
+        className={`w-96 bg-white border-l shadow-xl flex flex-col h-screen fixed right-0 top-0 transition-transform duration-200 ${
+          chatOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="p-4 bg-gray-900 text-white font-semibold flex items-center justify-between">
+          <span>AI Site Reliability Engineer</span>
+          <button
+            type="button"
+            onClick={() => setChatOpen(false)}
+            className="text-gray-300 hover:text-white text-xl leading-none"
+            aria-label="Minimize chat"
+          >
+            –
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -105,13 +138,17 @@ function RootComponent() {
                         className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded text-xs"
                       >
                         <strong className="text-amber-800 block mb-1">
-                          ⚠️ Approval required: {toolName}
+                          ⚠️ Approval required:{' '}
+                          {TOOL_LABELS[toolName] ?? toolName}
                         </strong>
-                        {toolName === 'upgrade_plan' && (
+                        {toolName === 'change_plan' && (
                           <div className="space-y-0.5">
                             <div>Tier: {args.targetTier}</div>
                             <div>Cost: ${args.acceptedMonthlyCost}/mo</div>
                           </div>
+                        )}
+                        {toolName === 'delete_environment' && (
+                          <div>Environment: {args.name}</div>
                         )}
                         {part.approval.requestReason && (
                           <div className="mt-1 text-gray-600">
@@ -180,14 +217,14 @@ function RootComponent() {
                       )
                     }
 
-                    if (toolName === 'upgrade_plan') {
+                    if (toolName === 'change_plan') {
                       return (
                         <div
                           key={toolCallId}
                           className="mt-2 p-3 bg-white border rounded shadow-sm text-xs border-blue-200"
                         >
                           <strong className="text-blue-700 block mb-1">
-                            ⚡ Billing Upgraded
+                            💳 Plan Updated
                           </strong>
                           <div>Tier: {args.targetTier}</div>
                           <div>Cost: ${args.acceptedMonthlyCost}/mo</div>
@@ -261,6 +298,17 @@ function RootComponent() {
           </button>
         </form>
       </aside>
+
+      {!chatOpen && (
+        <button
+          type="button"
+          onClick={() => setChatOpen(true)}
+          className="fixed right-4 top-4 z-10 bg-gray-900 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg"
+          aria-label="Open chat"
+        >
+          💬
+        </button>
+      )}
     </div>
   )
 }

@@ -19,6 +19,14 @@ create table if not exists public.subscriptions (
   created_at timestamptz not null default now()
 );
 
+-- Ensure created_at exists on pre-existing tables (idempotent).
+alter table public.environments add column if not exists created_at timestamptz not null default now();
+alter table public.subscriptions add column if not exists created_at timestamptz not null default now();
+
+-- Make sure current_tier is plain text. The original demo only had Pro/Enterprise,
+-- so if the column was created as an enum, convert it so 'Free' is allowed too.
+alter table public.subscriptions alter column current_tier type text using current_tier::text;
+
 -- Realtime: expose these tables so the dashboard receives live INSERT/UPDATE/DELETE.
 -- NOTE: these two lines error if the table is already in the publication; that is
 -- harmless and can be ignored on re-runs.

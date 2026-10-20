@@ -1,6 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
 import { supabaseAdmin } from './supabase'
-import { PlanUpgradeSchema, ProvisionEnvironmentSchema } from '../lib/schemas'
+import {
+  DeleteEnvironmentByIdSchema,
+  PlanUpgradeSchema,
+  ProvisionEnvironmentSchema,
+} from '../lib/schemas'
 import type { PlanUpgradeInput, ProvisionEnvironmentInput } from '../lib/schemas'
 
 /** The single demo account both the human UI and the AI agent act on. */
@@ -48,18 +52,33 @@ export async function provisionEnvironment(data: ProvisionEnvironmentInput) {
   return inserted as EnvironmentRow
 }
 
+const TIER_ORDER = ['Free', 'Pro', 'Enterprise'] as const
+type Tier = (typeof TIER_ORDER)[number]
+
+function canTransition(from: Tier, to: Tier): boolean {
+  return Math.abs(TIER_ORDER.indexOf(from) - TIER_ORDER.indexOf(to)) === 1
+}
+
 /**
- * Shared capability: upgrade the billing plan.
+ * Shared capability: change the billing plan (up or down).
  *
- * Idempotent select-then-insert-or-update so it works whether or not a
- * subscription row exists yet (the old wizard-only path assumed one existed,
- * which the agent path quietly worked around - now they are unified).
+ * Plans move one tier at a time (Free -> Pro -> Enterprise), so jumping from
+ * Enterprise straight to Free is rejected here — a rule both the human UI and
+ * the AI agent get for free by sharing this one function.
  */
 export async function upgradePlan(data: PlanUpgradeInput) {
   const { data: existing } = await supabaseAdmin
     .from('subscriptions')
     .select('*')
     .eq('user_id', DEMO_USER_ID)
+
+  const currentTier = (existing?.[0]?.current_tier ?? 'Free') as Tier
+
+  if (!canTransition(currentTier, data.targetTier)) {
+    throw new Error(
+      `Cannot change from ${currentTier} directly to ${data.targetTier}. Plans change one step at a time: Free -> Pro -> Enterprise.`,
+    )
+  }
 
   let row: SubscriptionRow
 
@@ -109,6 +128,28 @@ export async function getSubscription(): Promise<SubscriptionRow | null> {
   return (data ?? null) as SubscriptionRow | null
 }
 
+/** Shared capability: delete an environment by id. */
+export async function deleteEnvironment(id: string | number) {
+  const { error } = await supabaseAdmin.from('environments').delete().eq('id', id)
+  if (error) throw new Error(`Database error: ${error.message}`)
+  return { success: true, id }
+}
+
+/** Helper used by the AI agent to resolve a human-friendly name to an id. */
+export async function getEnvironmentIdByName(
+  name: string,
+): Promise<string | number | null> {
+  const { data, error } = await supabaseAdmin
+    .from('environments')
+    .select('id')
+    .eq('name', name)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw new Error(`Database error: ${error.message}`)
+  return (data?.id ?? null) as string | number | null
+}
+
 /* -------------------------------------------------------------------------- */
 /* Server functions - the human/UI entry points (also callable via RPC).      */
 /* -------------------------------------------------------------------------- */
@@ -134,3 +175,7 @@ export const listEnvironmentsFn = createServerFn({ method: 'GET' }).handler(
 export const getSubscriptionFn = createServerFn({ method: 'GET' }).handler(
   () => getSubscription(),
 )
+
+export const deleteEnvironmentFn = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => DeleteEnvironmentByIdSchema.parse(data))
+  .handler(async ({ data }) => deleteEnvironment(data.id))
