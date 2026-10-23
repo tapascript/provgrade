@@ -4,30 +4,38 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>The Next User of Your React App May Not Be a User</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Geist:wght@300;400;500&display=swap" rel="stylesheet" />
 <style>
 :root {
-  --bg: #090826;              /* tapaScript navy */
-  --bg2: #0e1038;
-  --surface: rgba(25,135,238,.08);
-  --border: rgba(140,160,210,.22);
-  --text: #eaf0ff;
-  --muted: #9aa5c8;
-  --accent: #1987EE;          /* tapaScript blue */
-  --cyan: #63F2A1;            /* tapaScript mint green */
-  --green: #04D960;           /* tapaScript green */
-  --red: #f87171;
-  --amber: #fbbf24;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --bg:            oklch(0.07 0.012 250);
+  --bg2:           oklch(0.10 0.010 250);
+  --surface:       oklch(0.14 0.010 250);
+  --border:        oklch(0.18 0.008 250);
+  --border-strong: oklch(0.26 0.008 250);
+  --text:          oklch(0.97 0.005 230);
+  --muted:         oklch(0.80 0.010 230);
+  --accent:        oklch(0.82 0.14 199);
+  --accent-mid:    oklch(0.52 0.10 199);
+  --accent-subtle: oklch(0.15 0.05 199);
+  --cyan:          oklch(0.62 0.11 199);
+  --green:         oklch(0.82 0.17 152);
+  --red:           oklch(0.75 0.19 25);
+  --amber:         oklch(0.83 0.15 85);
+  --font-display:  'Manrope', system-ui, sans-serif;
+  --font-body:     'Geist', system-ui, sans-serif;
+  --mono:          ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
   background:
-    radial-gradient(1200px 800px at 80% -10%, rgba(12,112,242,.16), transparent 60%),
-    radial-gradient(1000px 700px at -10% 110%, rgba(4,217,96,.12), transparent 55%),
+    radial-gradient(1200px 800px at 80% -10%, oklch(0.82 0.14 199 / 0.12), transparent 60%),
+    radial-gradient(1000px 700px at -10% 110%, oklch(0.52 0.10 199 / 0.10), transparent 55%),
     var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   overflow: hidden;
 }
 
@@ -49,6 +57,8 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
 .accent { color: var(--accent); }
 .grad { background: linear-gradient(90deg, var(--accent), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .muted { color: var(--muted); }
+h1, h2, h3, .card h3, .node, .tag { font-family: var(--font-display); }
+p, li { font-weight: 300; }
 
 /* reveal-on-activate */
 .reveal { opacity: 0; transform: translateY(22px); transition: opacity .55s ease, transform .55s ease; transition-delay: var(--d, 0s); }
@@ -77,8 +87,8 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
   padding: 1.2rem 1.4rem; line-height: 1.7; overflow: auto; white-space: pre;
   box-shadow: 0 12px 40px rgba(0,0,0,.35);
 }
-.kw { color: var(--cyan); } .fn { color: #8ec5ff; } .str { color: #86efac; }
-.cm { color: #5a6a8c; } .p { color: #fca5a5; }
+.kw { color: var(--accent); } .fn { color: oklch(0.72 0.09 199); } .str { color: oklch(0.82 0.13 152); }
+.cm { color: var(--muted); } .p { color: oklch(0.80 0.10 15); }
 
 /* ---------- architecture diagram ---------- */
 .diagram { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 1.2rem; }
@@ -88,9 +98,9 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
   padding: .9rem 1.3rem; text-align: center; min-width: 230px;
 }
 .node small { display:block; color: var(--muted); font-family: var(--mono); font-size:.78rem; margin-top:.35rem; }
-.node.human { border-color: rgba(25,135,238,.55); box-shadow: 0 0 0 1px rgba(25,135,238,.22) inset; }
-.node.agent { border-color: rgba(99,242,161,.55); box-shadow: 0 0 0 1px rgba(99,242,161,.22) inset; }
-.node.core { border-color: rgba(255,255,255,.35); box-shadow: 0 0 34px rgba(25,135,238,.16); }
+.node.human { border-color: oklch(0.82 0.14 199 / 0.55); box-shadow: 0 0 0 1px oklch(0.82 0.14 199 / 0.22) inset; }
+.node.agent { border-color: oklch(0.62 0.11 199 / 0.55); box-shadow: 0 0 0 1px oklch(0.62 0.11 199 / 0.22) inset; }
+.node.core { border-color: oklch(0.97 0.005 230 / 0.35); box-shadow: 0 0 34px oklch(0.82 0.14 199 / 0.16); }
 .converge { width: 340px; height: 46px; margin: 2px 0; }
 .converge path { stroke-dasharray: 120; stroke-dashoffset: 120; }
 .slide.active .converge path { animation: draw .8s ease forwards .15s; }
@@ -113,10 +123,11 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
 .takeaways li::before { content: counter(n); counter-increment:n; position:absolute; left:0; top:1rem; width:2.2rem; height:2.2rem; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--cyan)); display:grid; place-items:center; font-weight:700; color:#0b0f1a; }
 
 /* ---------- chrome ---------- */
+#global-logo { position: fixed; top: 22px; right: 28px; height: 26px; width: auto; z-index: 40; opacity: 0.92; pointer-events: none; }
 #progress { position:fixed; top:0; left:0; height:3px; width:0; background:linear-gradient(90deg,var(--accent),var(--cyan)); z-index:100; transition:width .3s ease; }
-#footer { position:fixed; bottom:1rem; left:1.6rem; right:1.6rem; display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:.78rem; z-index:50; }
-.nav { position:fixed; bottom:1.1rem; right:1.6rem; display:flex; gap:.5rem; z-index:60; }
-.nav button { background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; width:2.2rem; height:2.2rem; cursor:pointer; font-size:1rem; }
+#footer { position:fixed; bottom:1rem; left:1.6rem; right:1.6rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; color:var(--muted); font-size:.78rem; z-index:50; }
+.nav { display:flex; gap:.5rem; }
+.nav button { background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; width:2rem; height:2rem; cursor:pointer; font-size:.95rem; }
 .nav button:hover { border-color:var(--cyan); color:var(--cyan); }
 .notes-panel { position:fixed; top:0; right:0; height:100%; width:min(380px,92vw); background:#0f1522; border-left:1px solid var(--border); transform:translateX(100%); transition:transform .3s ease; z-index:80; padding:1.4rem; overflow-y:auto; }
 .notes-panel.open { transform:none; }
@@ -132,6 +143,7 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
 </head>
 <body>
 <div id="progress"></div>
+<img src="images/tapascript-logo.svg" alt="tapaScript" id="global-logo" />
 
 <!-- ============ SLIDE 1 · TITLE ============ -->
 <section class="slide">
@@ -148,11 +160,49 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
   <p class="muted reveal" style="--d:.35s; margin-top:2.2rem; font-size:.95rem">→ to start · press <b>S</b> for speaker notes</p>
   <div class="notes" style="display:none">
     <div class="n"><b>SAY</b> — "How many of you built your React app for users? Buttons, forms, wizards, dropdowns — all designed for a human with a mouse. What happens when your next user isn't a human?"</div>
-    <div class="n"><b>DO</b> — start on the title, no bio.</div>
+    <div class="n"><b>DO</b> — start on the title.</div>
   </div>
 </section>
 
-<!-- ============ SLIDE 2 · WHO IS YOUR USER ============ -->
+<!-- ============ SLIDE 2 · ABOUT ME ============ -->
+<section class="slide">
+  <span class="tag reveal">About Me</span>
+  <h2 class="reveal" style="--d:.05s; margin-bottom: 1rem;">Hi, I'm <span class="grad">Tapas</span>.</h2>
+  <div class="cols" style="margin-top: 0.5rem; gap: 3.5rem; align-items: center;">
+    <div class="reveal" style="--d:.15s; display: flex; justify-content: center;">
+      <img src="images/face-white.png" alt="Tapas Adhikary" style="height: min(50vh, 440px); width: auto; aspect-ratio: 3/4; border-radius: 20px; object-fit: cover; box-shadow: 0 0 48px oklch(0.82 0.14 199 / 0.28);">
+    </div>
+    <div style="display: flex; flex-direction: column; justify-content: center;">
+      <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1.1rem;">
+        <li class="reveal" style="--d:.2s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">💻</span>
+          <span><strong>20+ YOE</strong> &amp; Demand-Stack</span>
+        </li>
+        <li class="reveal" style="--d:.3s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">💼</span>
+          <span>CEO, Co-Founder @<span class="accent" style="font-weight: 600;">Creowis</span></span>
+        </li>
+        <li class="reveal" style="--d:.4s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">👨‍🏫</span>
+          <span>Educator @<span class="accent" style="font-weight: 600;">tapaScript</span></span>
+        </li>
+        <li class="reveal" style="--d:.5s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">👥</span>
+          <span>Founder @<span class="accent" style="font-weight: 600;">ReactPlay</span> &amp; <span class="accent" style="font-weight: 600;">React Kolkata</span></span>
+        </li>
+        <li class="reveal" style="--d:.6s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">▶️</span>
+          <span>YouTube @<span class="accent" style="font-weight: 600;">tapasadhikary</span></span>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "Before we dive into the code, a quick intro. I'm Tapas, and I've spent the last couple decades building UI for human users."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 3 · WHO IS YOUR USER ============ -->
 <section class="slide">
   <h2 class="reveal">Who is your <span class="grad">user</span>?</h2>
   <div class="cards two">
@@ -183,7 +233,7 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
   </div>
 </section>
 
-<!-- ============ SLIDE 3 · THE SHIFT ============ -->
+<!-- ============ SLIDE 4 · THE SHIFT ============ -->
 <section class="slide">
   <span class="tag reveal">The shift</span>
   <h2 class="reveal" style="--d:.05s">Software is learning to <span class="grad">act</span>, not just answer.</h2>
@@ -197,7 +247,7 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
   </div>
 </section>
 
-<!-- ============ SLIDE 4 · THE MISMATCH ============ -->
+<!-- ============ SLIDE 5 · THE MISMATCH ============ -->
 <section class="slide">
   <h2 class="reveal">The mismatch: <span class="grad">agents don't click</span>.</h2>
   <div class="cols">
@@ -223,7 +273,7 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
   </div>
 </section>
 
-<!-- ============ SLIDE 5 · THE REFRAME ============ -->
+<!-- ============ SLIDE 6 · THE REFRAME ============ -->
 <section class="slide">
   <span class="tag reveal">The reframe</span>
   <h2 class="reveal" style="--d:.05s">An agent is just <span class="grad">another user</span>.</h2>
@@ -239,7 +289,7 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
   </div>
 </section>
 
-<!-- ============ SLIDE 6 · DEMO: HUMAN ============ -->
+<!-- ============ SLIDE 7 · DEMO: HUMAN ============ -->
 <section class="slide">
   <span class="tag reveal">Demo · beat 1</span>
   <h2 class="reveal" style="--d:.05s">The <span class="grad">human</span> path.</h2>
@@ -267,14 +317,14 @@ h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -
   </div>
 </section>
 
-<!-- ============ SLIDE 7 · DEMO: AGENT ============ -->
+<!-- ============ SLIDE 8 · DEMO: AGENT ============ -->
 <section class="slide">
   <span class="tag reveal">Demo · beat 2</span>
   <h2 class="reveal" style="--d:.05s">The <span class="grad">agent</span> path.</h2>
   <p class="lead reveal" style="--d:.12s">"spin up a MongoDB cluster in us-east-1" → a tool → <span class="accent">the same function</span>.</p>
   <div class="cols">
     <div class="reveal" style="--d:.2s">
-      <div class="card" style="border-color: rgba(99,242,161,.5)">
+      <div class="card" style="border-color: oklch(0.62 0.11 199 / 0.5)">
         <h3>💬 Chat sidebar</h3>
         <p class="muted">"spin up a MongoDB cluster in us-east-1"</p>
       </div>
@@ -292,7 +342,7 @@ provision_environment: <span class="fn">tool</span>({
   </div>
 </section>
 
-<!-- ============ SLIDE 8 · MONEY SHOT ============ -->
+<!-- ============ SLIDE 9 · MONEY SHOT ============ -->
 <section class="slide">
   <span class="tag reveal">The money shot</span>
   <h2 class="reveal" style="--d:.05s">One capability. <span class="grad">Two clients.</span></h2>
@@ -303,15 +353,15 @@ provision_environment: <span class="fn">tool</span>({
     </div>
     <svg class="converge" viewBox="0 0 340 46" preserveAspectRatio="none">
       <defs>
-        <marker id="arrBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M0 0 L10 5 L0 10 z" fill="#1987EE" />
+        <marker id="arrAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="oklch(0.82 0.14 199)" />
         </marker>
-        <marker id="arrGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M0 0 L10 5 L0 10 z" fill="#63F2A1" />
+        <marker id="arrMid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="oklch(0.62 0.11 199)" />
         </marker>
       </defs>
-      <path d="M 70 0 L 170 42" fill="none" stroke="#1987EE" stroke-width="2" marker-end="url(#arrBlue)" />
-      <path d="M 270 0 L 170 42" fill="none" stroke="#63F2A1" stroke-width="2" marker-end="url(#arrGreen)" />
+      <path d="M 70 0 L 170 42" fill="none" stroke="oklch(0.82 0.14 199)" stroke-width="2" marker-end="url(#arrAccent)" />
+      <path d="M 270 0 L 170 42" fill="none" stroke="oklch(0.62 0.11 199)" stroke-width="2" marker-end="url(#arrMid)" />
     </svg>
     <div class="node core">⚙️ Shared capability — <b>provisionEnvironment()</b><br /><small>one function, one source of truth</small></div>
     <div class="v-arrow"></div>
@@ -327,7 +377,7 @@ provision_environment: <span class="fn">tool</span>({
   </div>
 </section>
 
-<!-- ============ SLIDE 9 · COEXISTENCE / APPROVAL ============ -->
+<!-- ============ SLIDE 10 · COEXISTENCE / APPROVAL ============ -->
 <section class="slide">
   <span class="tag reveal">Coexistence</span>
   <h2 class="reveal" style="--d:.05s">The agent <span class="grad">asks the human</span>.</h2>
@@ -355,7 +405,7 @@ provision_environment: <span class="fn">tool</span>({
   </div>
 </section>
 
-<!-- ============ SLIDE 10 · FOUR PATTERNS ============ -->
+<!-- ============ SLIDE 11 · FOUR PATTERNS ============ -->
 <section class="slide">
   <span class="tag reveal">Patterns</span>
   <h2 class="reveal" style="--d:.05s">Four patterns that <span class="grad">fall out</span>.</h2>
@@ -370,7 +420,7 @@ provision_environment: <span class="fn">tool</span>({
   </div>
 </section>
 
-<!-- ============ SLIDE 11 · TAKEAWAYS ============ -->
+<!-- ============ SLIDE 12 · TAKEAWAYS ============ -->
 <section class="slide">
   <span class="tag reveal">Takeaways</span>
   <h2 class="reveal" style="--d:.05s">Remember <span class="grad">three</span> things.</h2>
@@ -384,7 +434,7 @@ provision_environment: <span class="fn">tool</span>({
   </div>
 </section>
 
-<!-- ============ SLIDE 12 · CLOSING ============ -->
+<!-- ============ SLIDE 13 · CLOSING ============ -->
 <section class="slide">
   <h1 class="reveal">Design for them —<br />or <span class="grad">bolt them on</span> later.</h1>
   <p class="lead reveal" style="--d:.15s">The next user of your React app may not be a user.<br />Build for both.</p>
@@ -398,18 +448,41 @@ provision_environment: <span class="fn">tool</span>({
   </div>
 </section>
 
+<!-- ============ SLIDE 14 · THANK YOU ============ -->
+<section class="slide">
+  <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+    <h1 class="reveal">Thank <span class="grad">You</span></h1>
+    <p class="lead reveal" style="--d:.12s; margin-bottom: 2.5rem;">Let's build for the next user — human and AI.</p>
+    <div class="card reveal" style="--d:.25s; display: flex; align-items: center; gap: 2.5rem; padding: 2rem 2.5rem; max-width: 660px;">
+      <div style="background: #ffffff; padding: 10px; border-radius: 10px; flex-shrink: 0;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https://linktr.ee/tapasadhikary" alt="Scan to connect" style="width: 190px; height: 190px; display: block;">
+      </div>
+      <div style="text-align: left; display: flex; flex-direction: column; gap: 0.6rem;">
+        <p style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: var(--text); margin: 0;">Tapas Adhikary</p>
+        <p style="font-size: 1.05rem; color: var(--muted); margin: 0;">tapaScript.io · CreoWis.com</p>
+        <div style="display: flex; align-items: center; gap: 0.7rem; color: var(--text); font-weight: 600; font-size: 1.1rem;">
+          <span style="color: var(--accent); font-size: 1.25rem;">▶️</span>
+          <span>@tapasadhikary</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "Thank you! Scan to connect — I'd love to hear what you're building."</div>
+    <div class="n"><b>DO</b> — leave the QR on screen during Q&amp;A.</div>
+  </div>
+</section>
+
 <!-- ============ CHROME ============ -->
 <footer id="footer">
   <span>"The next user of your React app may not be a user"</span>
-  <span id="counter">1 / 12</span>
-  <span>← → to navigate · S for notes</span>
+  <span id="counter">1 / 13</span>
+  <div class="nav">
+    <button id="prev" aria-label="Previous" title="Previous (←)">←</button>
+    <button id="next" aria-label="Next" title="Next (→)">→</button>
+    <button id="notesToggle" aria-label="Notes" title="Speaker notes (S)">🗒</button>
+  </div>
 </footer>
-
-<div class="nav">
-  <button id="prev" aria-label="Previous">←</button>
-  <button id="next" aria-label="Next">→</button>
-  <button id="notesToggle" aria-label="Notes">🗒</button>
-</div>
 
 <aside class="notes-panel" id="notes">
   <h4>Speaker notes</h4>
