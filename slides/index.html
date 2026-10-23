@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Next User of Your React App May Not Be a User</title>
+<style>
+:root {
+  --bg: #090826;              /* tapaScript navy */
+  --bg2: #0e1038;
+  --surface: rgba(25,135,238,.08);
+  --border: rgba(140,160,210,.22);
+  --text: #eaf0ff;
+  --muted: #9aa5c8;
+  --accent: #1987EE;          /* tapaScript blue */
+  --cyan: #63F2A1;            /* tapaScript mint green */
+  --green: #04D960;           /* tapaScript green */
+  --red: #f87171;
+  --amber: #fbbf24;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background:
+    radial-gradient(1200px 800px at 80% -10%, rgba(12,112,242,.16), transparent 60%),
+    radial-gradient(1000px 700px at -10% 110%, rgba(4,217,96,.12), transparent 55%),
+    var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* ---------- slide shell ---------- */
+.slide {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 6vh 8vw;
+  opacity: 0; visibility: hidden; transform: translateY(16px);
+  transition: opacity .45s ease, transform .45s ease, visibility .45s;
+}
+.slide.active { opacity: 1; visibility: visible; transform: none; }
+.slide > * { max-width: 1100px; width: 100%; margin-left: auto; margin-right: auto; }
+
+h1 { font-size: clamp(2.3rem, 5.4vw, 4.4rem); line-height: 1.05; letter-spacing: -.02em; }
+h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -.01em; margin-bottom: 1.6rem; }
+.lead { font-size: clamp(1.15rem, 2.3vw, 1.7rem); color: var(--muted); margin-top: 1.2rem; line-height: 1.4; }
+.tag { display:inline-block; font-size:.85rem; letter-spacing:.14em; text-transform:uppercase; color: var(--cyan); margin-bottom: 1rem; font-weight: 600; }
+.accent { color: var(--accent); }
+.grad { background: linear-gradient(90deg, var(--accent), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.muted { color: var(--muted); }
+
+/* reveal-on-activate */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .55s ease, transform .55s ease; transition-delay: var(--d, 0s); }
+.slide.active .reveal { opacity: 1; transform: none; }
+
+/* ---------- cards / grids ---------- */
+.cards { display: grid; gap: 1.4rem; margin-top: 1rem; }
+.cards.two { grid-template-columns: repeat(2, 1fr); }
+.cards.three { grid-template-columns: repeat(3, 1fr); }
+.cards.four { grid-template-columns: repeat(2, 1fr); }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 1.6rem 1.5rem;
+}
+.card h3 { font-size: 1.35rem; margin-bottom: .6rem; }
+.card p, .card li { color: var(--muted); line-height: 1.5; }
+.card ul { list-style: none; padding: 0; }
+.card li { padding: .22rem 0; }
+.card .big { font-size: 2rem; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; margin-top: 1.5rem; }
+
+/* ---------- code window ---------- */
+.code {
+  background: #0c1120; border: 1px solid var(--border); border-radius: 12px;
+  font-family: var(--mono); font-size: clamp(.85rem, 1.5vw, 1.05rem);
+  padding: 1.2rem 1.4rem; line-height: 1.7; overflow: auto; white-space: pre;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+}
+.kw { color: var(--cyan); } .fn { color: #8ec5ff; } .str { color: #86efac; }
+.cm { color: #5a6a8c; } .p { color: #fca5a5; }
+
+/* ---------- architecture diagram ---------- */
+.diagram { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 1.2rem; }
+.drow { display: flex; gap: 2.5rem; width: 100%; justify-content: center; }
+.node {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: .9rem 1.3rem; text-align: center; min-width: 230px;
+}
+.node small { display:block; color: var(--muted); font-family: var(--mono); font-size:.78rem; margin-top:.35rem; }
+.node.human { border-color: rgba(25,135,238,.55); box-shadow: 0 0 0 1px rgba(25,135,238,.22) inset; }
+.node.agent { border-color: rgba(99,242,161,.55); box-shadow: 0 0 0 1px rgba(99,242,161,.22) inset; }
+.node.core { border-color: rgba(255,255,255,.35); box-shadow: 0 0 34px rgba(25,135,238,.16); }
+.converge { width: 340px; height: 46px; margin: 2px 0; }
+.converge path { stroke-dasharray: 120; stroke-dashoffset: 120; }
+.slide.active .converge path { animation: draw .8s ease forwards .15s; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.v-arrow { height: 30px; width: 2px; background: linear-gradient(var(--accent), var(--cyan)); margin: 0 auto; position: relative; }
+.v-arrow::after { content:''; position:absolute; bottom:-1px; left:50%; transform:translateX(-50%); border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--cyan); }
+
+/* ---------- approval card ---------- */
+.approve-card { background:#1a1508; border:1px solid rgba(251,191,36,.4); border-radius:12px; padding:1.1rem 1.3rem; max-width: 460px; margin-top:1.2rem; }
+.approve-card .t { color: var(--amber); font-weight: 700; margin-bottom:.4rem; }
+.approve-actions { display:flex; gap:.7rem; margin-top:.8rem; }
+.btn { padding:.45rem 1.1rem; border-radius:8px; font-weight:600; font-size:.9rem; }
+.btn.ok { background: var(--green); color:#06251a; } .btn.no { background:#2a2f3a; color: var(--muted); }
+
+/* ---------- badges / lists ---------- */
+.badges { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1.6rem; }
+.badge { border:1px solid var(--border); border-radius:999px; padding:.35rem .85rem; font-size:.85rem; color: var(--muted); font-family: var(--mono); }
+.takeaways { list-style:none; margin-top:1rem; counter-reset: n; }
+.takeaways li { position:relative; padding:1rem 0 1rem 3.2rem; border-bottom:1px solid var(--border); font-size:clamp(1.05rem,2vw,1.45rem); line-height:1.4; }
+.takeaways li::before { content: counter(n); counter-increment:n; position:absolute; left:0; top:1rem; width:2.2rem; height:2.2rem; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--cyan)); display:grid; place-items:center; font-weight:700; color:#0b0f1a; }
+
+/* ---------- chrome ---------- */
+#progress { position:fixed; top:0; left:0; height:3px; width:0; background:linear-gradient(90deg,var(--accent),var(--cyan)); z-index:100; transition:width .3s ease; }
+#footer { position:fixed; bottom:1rem; left:1.6rem; right:1.6rem; display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:.78rem; z-index:50; }
+.nav { position:fixed; bottom:1.1rem; right:1.6rem; display:flex; gap:.5rem; z-index:60; }
+.nav button { background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; width:2.2rem; height:2.2rem; cursor:pointer; font-size:1rem; }
+.nav button:hover { border-color:var(--cyan); color:var(--cyan); }
+.notes-panel { position:fixed; top:0; right:0; height:100%; width:min(380px,92vw); background:#0f1522; border-left:1px solid var(--border); transform:translateX(100%); transition:transform .3s ease; z-index:80; padding:1.4rem; overflow-y:auto; }
+.notes-panel.open { transform:none; }
+.notes-panel h4 { color:var(--cyan); margin-bottom:1rem; letter-spacing:.06em; text-transform:uppercase; font-size:.8rem; }
+.notes-panel .n { border-left:2px solid var(--border); padding:.35rem .8rem; margin:.7rem 0; color:var(--muted); line-height:1.45; font-size:.9rem; }
+.notes-panel .n b { color:var(--text); }
+@media (max-width: 760px) {
+  .cards.two, .cards.three, .cards.four, .cols { grid-template-columns: 1fr; }
+  .drow { flex-direction: column; gap: .6rem; }
+  .converge { display:none; }
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<!-- ============ SLIDE 1 · TITLE ============ -->
+<section class="slide">
+  <span class="tag reveal">React India</span>
+  <h1 class="reveal" style="--d:.05s">The Next User of Your<br />React App <span class="grad">May Not Be a User</span></h1>
+  <p class="lead reveal" style="--d:.15s">Designing your React app for AI agents as first-class users.</p>
+  <div class="badges reveal" style="--d:.25s">
+    <span class="badge">TanStack Start</span>
+    <span class="badge">React 19</span>
+    <span class="badge">AI SDK</span>
+    <span class="badge">Supabase</span>
+    <span class="badge">Zod</span>
+  </div>
+  <p class="muted reveal" style="--d:.35s; margin-top:2.2rem; font-size:.95rem">→ to start · press <b>S</b> for speaker notes</p>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "How many of you built your React app for users? Buttons, forms, wizards, dropdowns — all designed for a human with a mouse. What happens when your next user isn't a human?"</div>
+    <div class="n"><b>DO</b> — start on the title, no bio.</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 2 · WHO IS YOUR USER ============ -->
+<section class="slide">
+  <h2 class="reveal">Who is your <span class="grad">user</span>?</h2>
+  <div class="cards two">
+    <div class="card reveal" style="--d:.1s">
+      <div class="big">👤</div>
+      <h3>Human</h3>
+      <ul>
+        <li>Reads text &amp; labels</li>
+        <li>Clicks buttons</li>
+        <li>Fills forms</li>
+        <li>Waits for loaders</li>
+      </ul>
+    </div>
+    <div class="card reveal" style="--d:.2s">
+      <div class="big">🤖</div>
+      <h3>Agent</h3>
+      <ul>
+        <li>Reasons about intent</li>
+        <li>Calls tools</li>
+        <li>Acts, then checks the result</li>
+        <li>Never touches the DOM</li>
+      </ul>
+    </div>
+  </div>
+  <p class="lead reveal" style="--d:.3s">Both are users. <span class="accent">Only one has a mouse.</span></p>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "Both want the same outcome. They just interface with your app completely differently."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 3 · THE SHIFT ============ -->
+<section class="slide">
+  <span class="tag reveal">The shift</span>
+  <h2 class="reveal" style="--d:.05s">Software is learning to <span class="grad">act</span>, not just answer.</h2>
+  <ul class="takeaways reveal" style="--d:.15s">
+    <li>Copilot, Claude, ChatGPT — and now <b>agentic workflows</b>.</li>
+    <li>Agents don't stop at a chat reply — they <b>do things</b>.</li>
+    <li>Your app's next user won't read your UI — <b>it will call your capabilities</b>.</li>
+  </ul>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "We're in an agentic wave. The apps we build are about to get a new kind of user."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 4 · THE MISMATCH ============ -->
+<section class="slide">
+  <h2 class="reveal">The mismatch: <span class="grad">agents don't click</span>.</h2>
+  <div class="cols">
+    <div class="reveal" style="--d:.1s">
+      <p class="muted" style="margin-bottom:.8rem">This is useless to an agent…</p>
+      <div class="card" style="text-align:center">
+        <div style="font-size:1.4rem; margin-bottom:.8rem">🖱️</div>
+        <div style="background:#1f2937; border-radius:8px; padding:.8rem; width:70%; margin:.6rem auto">Provision database</div>
+        <div style="color:var(--red); font-size:.85rem">🤖 can't see or click this</div>
+      </div>
+    </div>
+    <div class="reveal" style="--d:.2s">
+      <p class="muted" style="margin-bottom:.8rem">…but this is perfect:</p>
+      <pre class="code">{ "tool": "provision_environment",
+  "input": {
+    "name": "staging-db",
+    "dbType": "PostgreSQL",
+    "region": "ap-south-1" } }</pre>
+    </div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "The agent doesn't want your buttons. It wants a contract: a function it can call with structured input."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 5 · THE REFRAME ============ -->
+<section class="slide">
+  <span class="tag reveal">The reframe</span>
+  <h2 class="reveal" style="--d:.05s">An agent is just <span class="grad">another user</span>.</h2>
+  <p class="lead reveal" style="--d:.15s">Same capabilities. Two different interfaces.</p>
+  <div class="cols reveal" style="--d:.25s">
+    <div class="node human">👤 Human UI<br /><small>wizard → server function</small></div>
+    <div class="node core">⚙️ One capability<br /><small>validated by one schema</small></div>
+    <div class="node agent">🤖 Agent UI<br /><small>chat → tool call</small></div>
+  </div>
+  <p class="lead reveal" style="--d:.35s">The question: <span class="accent">how do I build one app that serves both — without writing everything twice?</span></p>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "This is the core idea of the whole talk. The agent is not a special case — it's just a different frontend."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 6 · DEMO: HUMAN ============ -->
+<section class="slide">
+  <span class="tag reveal">Demo · beat 1</span>
+  <h2 class="reveal" style="--d:.05s">The <span class="grad">human</span> path.</h2>
+  <p class="lead reveal" style="--d:.12s">3-step wizard → one server function → Supabase.</p>
+  <div class="cols">
+    <div class="reveal" style="--d:.2s">
+      <div class="card">
+        <h3>Wizard</h3>
+        <ul>
+          <li><b>1.</b> Configuration</li>
+          <li><b>2.</b> Region</li>
+          <li><b>3.</b> Review &amp; provision</li>
+        </ul>
+      </div>
+    </div>
+    <pre class="code reveal" style="--d:.3s"><span class="cm">// src/routes/new/step-3.tsx</span>
+<span class="kw">await</span> <span class="fn">provisionEnvironmentFn</span>({
+  data: { name, dbType, region },
+})</pre>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>DO</b> — run the wizard, provision PostgreSQL in ap-south-1, point at the live dashboard.</div>
+    <div class="n"><b>SHOW</b> — step-3.tsx → provisionEnvironmentFn → capabilities.ts.</div>
+    <div class="n"><b>SAY</b> — "The wizard is just a UI for this one function."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 7 · DEMO: AGENT ============ -->
+<section class="slide">
+  <span class="tag reveal">Demo · beat 2</span>
+  <h2 class="reveal" style="--d:.05s">The <span class="grad">agent</span> path.</h2>
+  <p class="lead reveal" style="--d:.12s">"spin up a MongoDB cluster in us-east-1" → a tool → <span class="accent">the same function</span>.</p>
+  <div class="cols">
+    <div class="reveal" style="--d:.2s">
+      <div class="card" style="border-color: rgba(99,242,161,.5)">
+        <h3>💬 Chat sidebar</h3>
+        <p class="muted">"spin up a MongoDB cluster in us-east-1"</p>
+      </div>
+    </div>
+    <pre class="code reveal" style="--d:.3s"><span class="cm">// src/routes/api/chat.ts</span>
+provision_environment: <span class="fn">tool</span>({
+  inputSchema: <span class="fn">ProvisionEnvironmentSchema</span>,
+  execute: (args) => <span class="fn">provisionEnvironment</span>(args),
+})</pre>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>DO</b> — type "spin up a MongoDB cluster in us-east-1", watch the dashboard update live.</div>
+    <div class="n"><b>SHOW</b> — chat.ts tool → same provisionEnvironment.</div>
+    <div class="n"><b>SAY</b> — "The agent didn't get a special API. It called the same function."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 8 · MONEY SHOT ============ -->
+<section class="slide">
+  <span class="tag reveal">The money shot</span>
+  <h2 class="reveal" style="--d:.05s">One capability. <span class="grad">Two clients.</span></h2>
+  <div class="diagram reveal" style="--d:.15s">
+    <div class="drow">
+      <div class="node human">👤 Human wizard<br /><small>provisionEnvironmentFn</small></div>
+      <div class="node agent">🤖 AI agent<br /><small>provision_environment tool</small></div>
+    </div>
+    <svg class="converge" viewBox="0 0 340 46" preserveAspectRatio="none">
+      <defs>
+        <marker id="arrBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#1987EE" />
+        </marker>
+        <marker id="arrGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#63F2A1" />
+        </marker>
+      </defs>
+      <path d="M 70 0 L 170 42" fill="none" stroke="#1987EE" stroke-width="2" marker-end="url(#arrBlue)" />
+      <path d="M 270 0 L 170 42" fill="none" stroke="#63F2A1" stroke-width="2" marker-end="url(#arrGreen)" />
+    </svg>
+    <div class="node core">⚙️ Shared capability — <b>provisionEnvironment()</b><br /><small>one function, one source of truth</small></div>
+    <div class="v-arrow"></div>
+    <div class="node">🧾 Zod schema<br /><small>the shared contract (human form + tool input)</small></div>
+    <div class="v-arrow"></div>
+    <div class="node">🗄️ Supabase — Postgres + Realtime</div>
+    <div class="v-arrow"></div>
+    <div class="node">📊 Live dashboard</div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY (slowly)</b> — "One capability. Two clients. One Zod contract. THAT is how you design for non-human users."</div>
+    <div class="n"><b>SHOW</b> — capabilities.ts + schemas.ts side by side.</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 9 · COEXISTENCE / APPROVAL ============ -->
+<section class="slide">
+  <span class="tag reveal">Coexistence</span>
+  <h2 class="reveal" style="--d:.05s">The agent <span class="grad">asks the human</span>.</h2>
+  <p class="lead reveal" style="--d:.12s">High-stakes actions are gated — money, deletes.</p>
+  <div class="cols">
+    <div class="reveal" style="--d:.2s">
+      <div class="card">
+        <h3>🤖 wants to change the plan</h3>
+        <p class="muted">The model can propose — but not execute — the change.</p>
+      </div>
+    </div>
+    <div class="approve-card reveal" style="--d:.3s">
+      <div class="t">⚠️ Approval required — Change plan</div>
+      <div>Tier: Pro · Cost: $50/mo</div>
+      <div class="approve-actions">
+        <span class="btn ok">Approve</span>
+        <span class="btn no">Deny</span>
+      </div>
+    </div>
+  </div>
+  <p class="lead reveal" style="--d:.4s">The agent doesn't replace the human — <span class="accent">it feeds the human</span>.</p>
+  <div class="notes" style="display:none">
+    <div class="n"><b>DO</b> — "upgrade me to Pro" → approve card → click Approve. Then "delete staging-db" → Deny.</div>
+    <div class="n"><b>SAY</b> — "The most important design decision for agent users: what are they NOT allowed to do on their own?"</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 10 · FOUR PATTERNS ============ -->
+<section class="slide">
+  <span class="tag reveal">Patterns</span>
+  <h2 class="reveal" style="--d:.05s">Four patterns that <span class="grad">fall out</span>.</h2>
+  <div class="cards four">
+    <div class="card reveal" style="--d:.1s"><h3>1 · Capabilities, not screens</h3><p>Expose intent as functions, not pages.</p></div>
+    <div class="card reveal" style="--d:.18s"><h3>2 · One contract</h3><p>A Zod schema is the shared language for UI <em>and</em> tools.</p></div>
+    <div class="card reveal" style="--d:.26s"><h3>3 · Human-in-the-loop</h3><p>Gate irreversible / high-stakes actions by default.</p></div>
+    <div class="card reveal" style="--d:.34s"><h3>4 · Observe the agent</h3><p>Realtime, telemetry, cost — like any other user.</p></div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SHOW</b> — flash capabilities.ts, schemas.ts, the approval UI, and the dashboard for each pattern.</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 11 · TAKEAWAYS ============ -->
+<section class="slide">
+  <span class="tag reveal">Takeaways</span>
+  <h2 class="reveal" style="--d:.05s">Remember <span class="grad">three</span> things.</h2>
+  <ul class="takeaways">
+    <li class="reveal" style="--d:.1s">The next user may not be human — <b>but it's still a user.</b></li>
+    <li class="reveal" style="--d:.2s"><b>You already have the tools</b> — server functions, typed schemas, React.</li>
+    <li class="reveal" style="--d:.3s">The agent doesn't replace your UI — <b>it feeds it.</b></li>
+  </ul>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "Add tools, a shared contract, and guardrails — and you've designed for both users."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 12 · CLOSING ============ -->
+<section class="slide">
+  <h1 class="reveal">Design for them —<br />or <span class="grad">bolt them on</span> later.</h1>
+  <p class="lead reveal" style="--d:.15s">The next user of your React app may not be a user.<br />Build for both.</p>
+  <div class="badges reveal" style="--d:.25s">
+    <span class="badge">github.com/tapascript/provgrade</span>
+    <span class="badge">TanStack Start · AI SDK · Supabase</span>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "The question isn't whether your app will have non-human users. It's whether you'll design for them."</div>
+    <div class="n"><b>DO</b> — drop the repo link. Open Q&amp;A.</div>
+  </div>
+</section>
+
+<!-- ============ CHROME ============ -->
+<footer id="footer">
+  <span>"The next user of your React app may not be a user"</span>
+  <span id="counter">1 / 12</span>
+  <span>← → to navigate · S for notes</span>
+</footer>
+
+<div class="nav">
+  <button id="prev" aria-label="Previous">←</button>
+  <button id="next" aria-label="Next">→</button>
+  <button id="notesToggle" aria-label="Notes">🗒</button>
+</div>
+
+<aside class="notes-panel" id="notes">
+  <h4>Speaker notes</h4>
+  <div id="notesBody"></div>
+</aside>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0;
+  var counter = document.getElementById('counter');
+  var progress = document.getElementById('progress');
+  var notes = document.getElementById('notes');
+  var notesBody = document.getElementById('notesBody');
+
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach(function (s, idx) { s.classList.toggle('active', idx === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    progress.style.width = (((i + 1) / slides.length) * 100) + '%';
+    var note = slides[i].querySelector('.notes');
+    notesBody.innerHTML = note ? note.innerHTML : '<div class="n">(no notes)</div>';
+  }
+  function next() { show(i + 1); }
+  function prev() { show(i - 1); }
+  function toggleNotes() { notes.classList.toggle('open'); }
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+  document.getElementById('notesToggle').addEventListener('click', toggleNotes);
+
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown') { e.preventDefault(); next(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp') { e.preventDefault(); prev(); }
+    else if (k === 'Home') { show(0); }
+    else if (k === 'End') { show(slides.length - 1); }
+    else if (k.toLowerCase() === 's') { toggleNotes(); }
+  });
+
+  // click anywhere (except chrome) to advance
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.notes-panel')) return;
+    next();
+  });
+
+  show(0);
+})();
+</script>
+</body>
+</html>
