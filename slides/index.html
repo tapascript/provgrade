@@ -458,7 +458,7 @@ provision_environment: <span class="fn">tool</span>({
       </div>
       <div style="text-align: left; display: flex; flex-direction: column; gap: 0.6rem;">
         <p style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: var(--text); margin: 0;">Tapas Adhikary</p>
-        <p style="font-size: 1.05rem; color: var(--muted); margin: 0;">tapaScript.io · CreoWis.com</p>
+        <p style="font-size: 1.05rem; color: var(--muted); margin: 0;">tapascript.io · creowis.com</p>
         <div style="display: flex; align-items: center; gap: 0.7rem; color: var(--text); font-weight: 600; font-size: 1.1rem;">
           <span style="color: var(--accent); font-size: 1.25rem;">▶️</span>
           <span>@tapasadhikary</span>
@@ -526,6 +526,12 @@ provision_environment: <span class="fn">tool</span>({
   document.addEventListener('click', function (e) {
     if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.notes-panel')) return;
     next();
+  });
+
+  // right-click anywhere to go back
+  document.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    prev();
   });
 
   show(0);
