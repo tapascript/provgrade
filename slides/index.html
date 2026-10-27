@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Next User of Your React App May Not Be a Human</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Geist:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg:            oklch(0.07 0.012 250);
+  --bg2:           oklch(0.10 0.010 250);
+  --surface:       oklch(0.14 0.010 250);
+  --border:        oklch(0.18 0.008 250);
+  --border-strong: oklch(0.26 0.008 250);
+  --text:          oklch(0.97 0.005 230);
+  --muted:         oklch(0.80 0.010 230);
+  --accent:        oklch(0.82 0.14 199);
+  --accent-mid:    oklch(0.52 0.10 199);
+  --accent-subtle: oklch(0.15 0.05 199);
+  --cyan:          oklch(0.62 0.11 199);
+  --green:         oklch(0.82 0.17 152);
+  --red:           oklch(0.75 0.19 25);
+  --amber:         oklch(0.83 0.15 85);
+  --font-display:  'Manrope', system-ui, sans-serif;
+  --font-body:     'Geist', system-ui, sans-serif;
+  --mono:          ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background:
+    radial-gradient(1200px 800px at 80% -10%, oklch(0.82 0.14 199 / 0.12), transparent 60%),
+    radial-gradient(1000px 700px at -10% 110%, oklch(0.52 0.10 199 / 0.10), transparent 55%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+/* ---------- slide shell ---------- */
+.slide {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 6vh 8vw;
+  opacity: 0; visibility: hidden; transform: translateY(16px);
+  transition: opacity .45s ease, transform .45s ease, visibility .45s;
+}
+.slide.active { opacity: 1; visibility: visible; transform: none; }
+.slide > * { max-width: 1100px; width: 100%; margin-left: auto; margin-right: auto; }
+
+h1 { font-size: clamp(2.3rem, 5.4vw, 4.4rem); line-height: 1.05; letter-spacing: -.02em; }
+h2 { font-size: clamp(1.7rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -.01em; margin-bottom: 1.6rem; }
+.lead { font-size: clamp(1.15rem, 2.3vw, 1.7rem); color: var(--muted); margin-top: 1.2rem; line-height: 1.4; }
+.tag { display:inline-block; font-size:.85rem; letter-spacing:.14em; text-transform:uppercase; color: var(--cyan); margin-bottom: 1rem; font-weight: 600; }
+.accent { color: var(--accent); }
+.grad { background: linear-gradient(90deg, var(--accent), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.muted { color: var(--muted); }
+h1, h2, h3, .card h3, .node, .tag { font-family: var(--font-display); }
+p, li { font-weight: 300; }
+
+/* reveal-on-activate */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .55s ease, transform .55s ease; transition-delay: var(--d, 0s); }
+.slide.active .reveal { opacity: 1; transform: none; }
+
+/* ---------- cards / grids ---------- */
+.cards { display: grid; gap: 1.4rem; margin-top: 1rem; }
+.cards.two { grid-template-columns: repeat(2, 1fr); }
+.cards.three { grid-template-columns: repeat(3, 1fr); }
+.cards.four { grid-template-columns: repeat(2, 1fr); }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 1.6rem 1.5rem;
+}
+.card h3 { font-size: 1.35rem; margin-bottom: .6rem; }
+.card p, .card li { color: var(--muted); line-height: 1.5; }
+.card ul { list-style: none; padding: 0; }
+.card li { padding: .22rem 0; }
+.card .big { font-size: 2rem; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; margin-top: 1.5rem; }
+
+/* ---------- code window ---------- */
+.code {
+  background: #0c1120; border: 1px solid var(--border); border-radius: 12px;
+  font-family: var(--mono); font-size: clamp(.85rem, 1.5vw, 1.05rem);
+  padding: 1.2rem 1.4rem; line-height: 1.7; overflow: auto; white-space: pre;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+}
+.kw { color: var(--accent); } .fn { color: oklch(0.72 0.09 199); } .str { color: oklch(0.82 0.13 152); }
+.cm { color: var(--muted); } .p { color: oklch(0.80 0.10 15); }
+
+/* ---------- architecture diagram ---------- */
+.diagram { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 1.2rem; }
+.drow { display: flex; gap: 2.5rem; width: 100%; justify-content: center; }
+.node {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: .9rem 1.3rem; text-align: center; min-width: 230px;
+}
+.node small { display:block; color: var(--muted); font-family: var(--mono); font-size:.78rem; margin-top:.35rem; }
+.node.human { border-color: oklch(0.82 0.14 199 / 0.55); box-shadow: 0 0 0 1px oklch(0.82 0.14 199 / 0.22) inset; }
+.node.agent { border-color: oklch(0.62 0.11 199 / 0.55); box-shadow: 0 0 0 1px oklch(0.62 0.11 199 / 0.22) inset; }
+.node.core { border-color: oklch(0.97 0.005 230 / 0.35); box-shadow: 0 0 34px oklch(0.82 0.14 199 / 0.16); }
+.converge { width: 340px; height: 46px; margin: 2px 0; }
+.converge path { stroke-dasharray: 120; stroke-dashoffset: 120; }
+.slide.active .converge path { animation: draw .8s ease forwards .15s; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.v-arrow { height: 30px; width: 2px; background: linear-gradient(var(--accent), var(--cyan)); margin: 0 auto; position: relative; }
+.v-arrow::after { content:''; position:absolute; bottom:-1px; left:50%; transform:translateX(-50%); border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--cyan); }
+
+/* ---------- approval card ---------- */
+.approve-card { background:#1a1508; border:1px solid rgba(251,191,36,.4); border-radius:12px; padding:1.1rem 1.3rem; max-width: 460px; margin-top:1.2rem; }
+.approve-card .t { color: var(--amber); font-weight: 700; margin-bottom:.4rem; }
+.approve-actions { display:flex; gap:.7rem; margin-top:.8rem; }
+.btn { padding:.45rem 1.1rem; border-radius:8px; font-weight:600; font-size:.9rem; }
+.btn.ok { background: var(--green); color:#06251a; } .btn.no { background:#2a2f3a; color: var(--muted); }
+
+/* ---------- badges / lists ---------- */
+.badges { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1.6rem; }
+.badge { border:1px solid var(--border); border-radius:999px; padding:.35rem .85rem; font-size:.85rem; color: var(--muted); font-family: var(--mono); }
+.takeaways { list-style:none; margin-top:1rem; counter-reset: n; }
+.takeaways li { position:relative; padding:1rem 0 1rem 3.2rem; border-bottom:1px solid var(--border); font-size:clamp(1.05rem,2vw,1.45rem); line-height:1.4; }
+.takeaways li::before { content: counter(n); counter-increment:n; position:absolute; left:0; top:1rem; width:2.2rem; height:2.2rem; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--cyan)); display:grid; place-items:center; font-weight:700; color:#0b0f1a; }
+
+/* ---------- chrome ---------- */
+#global-logo { position: fixed; top: 22px; right: 28px; height: 26px; width: auto; z-index: 40; opacity: 0.92; pointer-events: none; }
+#progress { position:fixed; top:0; left:0; height:3px; width:0; background:linear-gradient(90deg,var(--accent),var(--cyan)); z-index:100; transition:width .3s ease; }
+#footer { position:fixed; bottom:1rem; left:1.6rem; right:1.6rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; color:var(--muted); font-size:.78rem; z-index:50; }
+.nav { display:flex; gap:.5rem; }
+.nav button { background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; width:2rem; height:2rem; cursor:pointer; font-size:.95rem; }
+.nav button:hover { border-color:var(--cyan); color:var(--cyan); }
+.notes-panel { position:fixed; top:0; right:0; height:100%; width:min(380px,92vw); background:#0f1522; border-left:1px solid var(--border); transform:translateX(100%); transition:transform .3s ease; z-index:80; padding:1.4rem; overflow-y:auto; }
+.notes-panel.open { transform:none; }
+.notes-panel h4 { color:var(--cyan); margin-bottom:1rem; letter-spacing:.06em; text-transform:uppercase; font-size:.8rem; }
+.notes-panel .n { border-left:2px solid var(--border); padding:.35rem .8rem; margin:.7rem 0; color:var(--muted); line-height:1.45; font-size:.9rem; }
+.notes-panel .n b { color:var(--text); }
+@media (max-width: 760px) {
+  .cards.two, .cards.three, .cards.four, .cols { grid-template-columns: 1fr; }
+  .drow { flex-direction: column; gap: .6rem; }
+  .converge { display:none; }
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<img src="images/tapascript-logo.svg" alt="tapaScript" id="global-logo" />
+
+<!-- ============ SLIDE 1 · TITLE ============ -->
+<section class="slide">
+  <span class="tag reveal">React India 2026</span>
+  <h1 class="reveal" style="--d:.05s">The Next User of Your<br />React App <span class="grad">May Not Be a Human</span></h1>
+  <p class="lead reveal" style="--d:.15s">Designing your React app for AI agents as first-class users.</p>
+  <div class="badges reveal" style="--d:.25s">
+    <span class="badge">React</span>
+    <span class="badge">AI</span>
+    <span class="badge">Human</span>
+    <span class="badge">Agents</span>
+    <span class="badge">Same Door</span>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "How many of you built your React app for users? Buttons, forms, wizards, dropdowns — all designed for a human with a mouse. What happens when your next user isn't a human?"</div>
+    <div class="n"><b>DO</b> — start on the title.</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 2 · ABOUT ME ============ -->
+<section class="slide">
+  <span class="tag reveal">About Me</span>
+  <h2 class="reveal" style="--d:.05s; margin-bottom: 1rem;">Hi, I'm <span class="grad">Tapas</span>.</h2>
+  <div class="cols" style="margin-top: 0.5rem; gap: 3.5rem; align-items: center;">
+    <div class="reveal" style="--d:.15s; display: flex; justify-content: center;">
+      <img src="images/face-white.png" alt="Tapas Adhikary" style="height: min(50vh, 440px); width: auto; aspect-ratio: 3/4; border-radius: 20px; object-fit: cover; box-shadow: 0 0 48px oklch(0.82 0.14 199 / 0.28);">
+    </div>
+    <div style="display: flex; flex-direction: column; justify-content: center;">
+      <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1.1rem;">
+        <li class="reveal" style="--d:.2s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">💻</span>
+          <span><strong>20+ YOE</strong> &amp; Demand-Stack</span>
+        </li>
+        <li class="reveal" style="--d:.3s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">💼</span>
+          <span>CEO, Co-Founder @<span class="accent" style="font-weight: 600;">Creowis</span></span>
+        </li>
+        <li class="reveal" style="--d:.4s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">👨‍🏫</span>
+          <span>Educator @<span class="accent" style="font-weight: 600;">tapaScript</span></span>
+        </li>
+        <li class="reveal" style="--d:.5s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">👥</span>
+          <span>Founder @<span class="accent" style="font-weight: 600;">ReactPlay(ADC)</span> &amp; <span class="accent" style="font-weight: 600;">React Kolkata</span></span>
+        </li>
+        <li class="reveal" style="--d:.6s; font-size: clamp(1.05rem, 1.7vw, 1.25rem); display: flex; align-items: center; gap: 1.1rem; color: var(--text);">
+          <span style="font-size: 1.6rem; width: 40px; text-align: center; flex-shrink: 0;">▶️</span>
+          <span>YouTube @<span class="accent" style="font-weight: 600;">tapasadhikary</span></span>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "Before we dive into the code, a quick intro. I'm Tapas, and I've spent the last couple decades building UI for human users."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 3 · WHO IS YOUR USER ============ -->
+<section class="slide">
+  <h2 class="reveal">Who is your <span class="grad">user</span>?</h2>
+  <div class="cards two">
+    <div class="card reveal" style="--d:.1s">
+      <div class="big">👤</div>
+      <h3>Human</h3>
+      <ul>
+        <li>Reads text &amp; labels</li>
+        <li>Clicks buttons</li>
+        <li>Fills forms</li>
+        <li>Waits for loaders</li>
+      </ul>
+    </div>
+    <div class="card reveal" style="--d:.2s">
+      <div class="big">🤖</div>
+      <h3>Agent</h3>
+      <ul>
+        <li>Reasons about intent</li>
+        <li>Calls tools</li>
+        <li>Acts, then checks the result</li>
+        <li>Never touches the DOM</li>
+      </ul>
+    </div>
+  </div>
+  <p class="lead reveal" style="--d:.3s">Both are users. <span class="accent">Only one has a mouse.</span></p>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "Both want the same outcome. They just interface with your app completely differently."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 4 · THE SHIFT ============ -->
+<section class="slide">
+  <span class="tag reveal">The shift</span>
+  <h2 class="reveal" style="--d:.05s">Software is learning to <span class="grad">act</span>, not just answer.</h2>
+  <ul class="takeaways reveal" style="--d:.15s">
+    <li>Copilot, Claude, ChatGPT — and now <b>agentic workflows</b>.</li>
+    <li>Agents don't stop at a chat reply — they <b>do things</b>.</li>
+    <li>Your app's next user won't read your UI — <b>it will call your capabilities</b>.</li>
+  </ul>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "We're in an agentic wave. The apps we build are about to get a new kind of user."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 5 · THE MISMATCH ============ -->
+<section class="slide">
+  <h2 class="reveal">The mismatch: <span class="grad">agents don't click</span>.</h2>
+  <div class="cols">
+    <div class="reveal" style="--d:.1s">
+      <p class="muted" style="margin-bottom:.8rem">This is useless to an agent…</p>
+      <div class="card" style="text-align:center">
+        <div style="font-size:1.4rem; margin-bottom:.8rem">🖱️</div>
+        <div style="background:#1f2937; border-radius:8px; padding:.8rem; width:70%; margin:.6rem auto">Provision database</div>
+        <div style="color:var(--red); font-size:.85rem">🤖 can't see or click this</div>
+      </div>
+    </div>
+    <div class="reveal" style="--d:.2s">
+      <p class="muted" style="margin-bottom:.8rem">…but this is perfect:</p>
+      <pre class="code">{ "tool": "provision_environment",
+  "input": {
+    "name": "staging-db",
+    "dbType": "PostgreSQL",
+    "region": "ap-south-1" } }</pre>
+    </div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "The agent doesn't want your buttons. It wants a contract: a function it can call with structured input."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 6 · THE REFRAME ============ -->
+<section class="slide">
+  <span class="tag reveal">The reframe</span>
+  <h2 class="reveal" style="--d:.05s">An agent is just <span class="grad">another user</span>.</h2>
+  <p class="lead reveal" style="--d:.15s">Same capabilities. Two different interfaces.</p>
+  <div class="cols reveal" style="--d:.25s">
+    <div class="node human">👤 Human UI<br /><small>wizard → server function</small></div>
+    <div class="node core">⚙️ One capability<br /><small>validated by one schema</small></div>
+    <div class="node agent">🤖 Agent UI<br /><small>chat → tool call</small></div>
+  </div>
+  <p class="lead reveal" style="--d:.35s">The question: <span class="accent">how do I build one app that serves both — without writing everything twice?</span></p>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "This is the core idea of the whole talk. The agent is not a special case — it's just a different frontend."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 7 · DEMO: HUMAN ============ -->
+<section class="slide">
+  <span class="tag reveal">Demo · beat 1</span>
+  <h2 class="reveal" style="--d:.05s">The <span class="grad">human</span> path.</h2>
+  <p class="lead reveal" style="--d:.12s">3-step wizard → one server function → Supabase.</p>
+  <div class="cols">
+    <div class="reveal" style="--d:.2s">
+      <div class="card">
+        <h3>Wizard</h3>
+        <ul>
+          <li><b>1.</b> Configuration</li>
+          <li><b>2.</b> Region</li>
+          <li><b>3.</b> Review &amp; provision</li>
+        </ul>
+      </div>
+    </div>
+    <pre class="code reveal" style="--d:.3s"><span class="cm">// src/routes/new/step-3.tsx</span>
+<span class="kw">await</span> <span class="fn">provisionEnvironmentFn</span>({
+  data: { name, dbType, region },
+})</pre>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>DO</b> — run the wizard, provision PostgreSQL in ap-south-1, point at the live dashboard.</div>
+    <div class="n"><b>SHOW</b> — step-3.tsx → provisionEnvironmentFn → capabilities.ts.</div>
+    <div class="n"><b>SAY</b> — "The wizard is just a UI for this one function."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 8 · DEMO: AGENT ============ -->
+<section class="slide">
+  <span class="tag reveal">Demo · beat 2</span>
+  <h2 class="reveal" style="--d:.05s">The <span class="grad">agent</span> path.</h2>
+  <p class="lead reveal" style="--d:.12s">"spin up a MongoDB cluster in us-east-1" → a tool → <span class="accent">the same function</span>.</p>
+  <div class="cols">
+    <div class="reveal" style="--d:.2s">
+      <div class="card" style="border-color: oklch(0.62 0.11 199 / 0.5)">
+        <h3>💬 Chat sidebar</h3>
+        <p class="muted">"spin up a MongoDB cluster in us-east-1"</p>
+      </div>
+    </div>
+    <pre class="code reveal" style="--d:.3s"><span class="cm">// src/routes/api/chat.ts</span>
+provision_environment: <span class="fn">tool</span>({
+  inputSchema: <span class="fn">ProvisionEnvironmentSchema</span>,
+  execute: (args) => <span class="fn">provisionEnvironment</span>(args),
+})</pre>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>DO</b> — type "spin up a MongoDB cluster in us-east-1", watch the dashboard update live.</div>
+    <div class="n"><b>SHOW</b> — chat.ts tool → same provisionEnvironment.</div>
+    <div class="n"><b>SAY</b> — "The agent didn't get a special API. It called the same function."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 9 · MONEY SHOT ============ -->
+<section class="slide">
+  <span class="tag reveal">The money shot</span>
+  <h2 class="reveal" style="--d:.05s">One capability. <span class="grad">Two clients.</span></h2>
+  <div class="diagram reveal" style="--d:.15s">
+    <div class="drow">
+      <div class="node human">👤 Human wizard<br /><small>provisionEnvironmentFn</small></div>
+      <div class="node agent">🤖 AI agent<br /><small>provision_environment tool</small></div>
+    </div>
+    <svg class="converge" viewBox="0 0 340 46" preserveAspectRatio="none">
+      <defs>
+        <marker id="arrAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="oklch(0.82 0.14 199)" />
+        </marker>
+        <marker id="arrMid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="oklch(0.62 0.11 199)" />
+        </marker>
+      </defs>
+      <path d="M 70 0 L 170 42" fill="none" stroke="oklch(0.82 0.14 199)" stroke-width="2" marker-end="url(#arrAccent)" />
+      <path d="M 270 0 L 170 42" fill="none" stroke="oklch(0.62 0.11 199)" stroke-width="2" marker-end="url(#arrMid)" />
+    </svg>
+    <div class="node core">⚙️ Shared capability — <b>provisionEnvironment()</b><br /><small>one function, one source of truth</small></div>
+    <div class="v-arrow"></div>
+    <div class="node">🧾 Zod schema<br /><small>the shared contract (human form + tool input)</small></div>
+    <div class="v-arrow"></div>
+    <div class="node">🗄️ Supabase — Postgres + Realtime</div>
+    <div class="v-arrow"></div>
+    <div class="node">📊 Live dashboard</div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY (slowly)</b> — "One capability. Two clients. One Zod contract. THAT is how you design for non-human users."</div>
+    <div class="n"><b>SHOW</b> — capabilities.ts + schemas.ts side by side.</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 10 · COEXISTENCE / APPROVAL ============ -->
+<section class="slide">
+  <span class="tag reveal">Coexistence</span>
+  <h2 class="reveal" style="--d:.05s">The agent <span class="grad">asks the human</span>.</h2>
+  <p class="lead reveal" style="--d:.12s">High-stakes actions are gated — money, deletes.</p>
+  <div class="cols">
+    <div class="reveal" style="--d:.2s">
+      <div class="card">
+        <h3>🤖 wants to change the plan</h3>
+        <p class="muted">The model can propose — but not execute — the change.</p>
+      </div>
+    </div>
+    <div class="approve-card reveal" style="--d:.3s">
+      <div class="t">⚠️ Approval required — Change plan</div>
+      <div>Tier: Pro · Cost: $50/mo</div>
+      <div class="approve-actions">
+        <span class="btn ok">Approve</span>
+        <span class="btn no">Deny</span>
+      </div>
+    </div>
+  </div>
+  <p class="lead reveal" style="--d:.4s">The agent doesn't replace the human — <span class="accent">it feeds the human</span>.</p>
+  <div class="notes" style="display:none">
+    <div class="n"><b>DO</b> — "upgrade me to Pro" → approve card → click Approve. Then "delete staging-db" → Deny.</div>
+    <div class="n"><b>SAY</b> — "The most important design decision for agent users: what are they NOT allowed to do on their own?"</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 11 · FOUR PATTERNS ============ -->
+<section class="slide">
+  <span class="tag reveal">Patterns</span>
+  <h2 class="reveal" style="--d:.05s">Four patterns that <span class="grad">fall out</span>.</h2>
+  <div class="cards four">
+    <div class="card reveal" style="--d:.1s"><h3>1 · Capabilities, not screens</h3><p>Expose intent as functions, not pages.</p></div>
+    <div class="card reveal" style="--d:.18s"><h3>2 · One contract</h3><p>A Zod schema is the shared language for UI <em>and</em> tools.</p></div>
+    <div class="card reveal" style="--d:.26s"><h3>3 · Human-in-the-loop</h3><p>Gate irreversible / high-stakes actions by default.</p></div>
+    <div class="card reveal" style="--d:.34s"><h3>4 · Observe the agent</h3><p>Realtime, telemetry, cost — like any other user.</p></div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SHOW</b> — flash capabilities.ts, schemas.ts, the approval UI, and the dashboard for each pattern.</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 12 · TAKEAWAYS ============ -->
+<section class="slide">
+  <span class="tag reveal">Takeaways</span>
+  <h2 class="reveal" style="--d:.05s">Remember <span class="grad">three</span> things.</h2>
+  <ul class="takeaways">
+    <li class="reveal" style="--d:.1s">The next user may not be a human — <b>but it's still a user.</b></li>
+    <li class="reveal" style="--d:.2s"><b>You already have the tools</b> — server functions, typed schemas, React.</li>
+    <li class="reveal" style="--d:.3s">The agent doesn't replace your UI — <b>it feeds it.</b></li>
+  </ul>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "Add tools, a shared contract, and guardrails — and you've designed for both users."</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 13 · CLOSING ============ -->
+<section class="slide">
+  <h1 class="reveal">Design for them —<br />or <span class="grad">bolt them on</span> later.</h1>
+  <p class="lead reveal" style="--d:.15s">The next user of your React app may not be a human.<br />Build for both.</p>
+  <div class="badges reveal" style="--d:.25s">
+    <span class="badge">github.com/tapascript/provgrade</span>
+    <span class="badge">TanStack Start · AI SDK · Supabase</span>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "The question isn't whether your app will have non-human users. It's whether you'll design for them."</div>
+    <div class="n"><b>DO</b> — drop the repo link. Open Q&amp;A.</div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 14 · THANK YOU ============ -->
+<section class="slide">
+  <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+    <h1 class="reveal">Thank <span class="grad">You</span></h1>
+    <p class="lead reveal" style="--d:.12s; margin-bottom: 2.5rem;">Let's build for the next user — human and AI.</p>
+    <div class="card reveal" style="--d:.25s; display: flex; align-items: center; gap: 2.5rem; padding: 2rem 2.5rem; max-width: 660px;">
+      <div style="background: #ffffff; padding: 10px; border-radius: 10px; flex-shrink: 0;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https://linktr.ee/tapasadhikary" alt="Scan to connect" style="width: 190px; height: 190px; display: block;">
+      </div>
+      <div style="text-align: left; display: flex; flex-direction: column; gap: 0.6rem;">
+        <p style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: var(--text); margin: 0;">Tapas Adhikary</p>
+        <p style="font-size: 1.05rem; color: var(--muted); margin: 0;">tapaScript.io · CreoWis.com</p>
+        <div style="display: flex; align-items: center; gap: 0.7rem; color: var(--text); font-weight: 600; font-size: 1.1rem;">
+          <span style="color: var(--accent); font-size: 1.25rem;">▶️</span>
+          <span>@tapasadhikary</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="notes" style="display:none">
+    <div class="n"><b>SAY</b> — "Thank you! Scan to connect — I'd love to hear what you're building."</div>
+    <div class="n"><b>DO</b> — leave the QR on screen during Q&amp;A.</div>
+  </div>
+</section>
+
+<!-- ============ CHROME ============ -->
+<footer id="footer">
+  <span>"The next user of your React app may not be a human"</span>
+  <span id="counter">1 / 13</span>
+  <div class="nav">
+    <button id="prev" aria-label="Previous" title="Previous (←)">←</button>
+    <button id="next" aria-label="Next" title="Next (→)">→</button>
+    <button id="notesToggle" aria-label="Notes" title="Speaker notes (S)">🗒</button>
+  </div>
+</footer>
+
+<aside class="notes-panel" id="notes">
+  <h4>Speaker notes</h4>
+  <div id="notesBody"></div>
+</aside>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0;
+  var counter = document.getElementById('counter');
+  var progress = document.getElementById('progress');
+  var notes = document.getElementById('notes');
+  var notesBody = document.getElementById('notesBody');
+
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach(function (s, idx) { s.classList.toggle('active', idx === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    progress.style.width = (((i + 1) / slides.length) * 100) + '%';
+    var note = slides[i].querySelector('.notes');
+    notesBody.innerHTML = note ? note.innerHTML : '<div class="n">(no notes)</div>';
+  }
+  function next() { show(i + 1); }
+  function prev() { show(i - 1); }
+  function toggleNotes() { notes.classList.toggle('open'); }
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+  document.getElementById('notesToggle').addEventListener('click', toggleNotes);
+
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown') { e.preventDefault(); next(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp') { e.preventDefault(); prev(); }
+    else if (k === 'Home') { show(0); }
+    else if (k === 'End') { show(slides.length - 1); }
+    else if (k.toLowerCase() === 's') { toggleNotes(); }
+  });
+
+  // click anywhere (except chrome) to advance
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.notes-panel')) return;
+    next();
+  });
+
+  show(0);
+})();
+</script>
+</body>
+</html>

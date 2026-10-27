@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
 // Schema 1: Provisioning a Database
 export const ProvisionEnvironmentSchema = z.object({
@@ -15,20 +15,38 @@ export const ProvisionEnvironmentSchema = z.object({
   dbType: z
     .enum(['PostgreSQL', 'MongoDB', 'Redis'])
     .describe('The database technology required for this workload'),
-});
+})
 
-// TypeScript type inference from the schema
-export type ProvisionEnvironmentInput = z.infer<typeof ProvisionEnvironmentSchema>;
+export type ProvisionEnvironmentInput = z.infer<typeof ProvisionEnvironmentSchema>
 
-// Schema 2: Upgrading a Plan
+// Schema 2: Changing a Plan (up or down, one tier at a time)
 export const PlanUpgradeSchema = z.object({
   targetTier: z
-    .enum(['Pro', 'Enterprise'])
-    .describe('The subscription tier to upgrade to'),
+    .enum(['Free', 'Pro', 'Enterprise'])
+    .describe(
+      'The subscription tier to move to. Tiers change one step at a time: Free -> Pro -> Enterprise.',
+    ),
 
   acceptedMonthlyCost: z
     .number()
-    .describe('The monthly cost in USD for confirmation display'),
-});
+    .describe('The monthly cost in USD for confirmation display (Free is $0).'),
+})
 
-export type PlanUpgradeInput = z.infer<typeof PlanUpgradeSchema>;
+export type PlanUpgradeInput = z.infer<typeof PlanUpgradeSchema>
+
+// Schema 3: Deleting an Environment (by name, used by the AI agent)
+export const DeleteEnvironmentSchema = z.object({
+  name: z
+    .string()
+    .min(3)
+    .describe('The name of the environment to delete, e.g., staging-db'),
+})
+
+export type DeleteEnvironmentInput = z.infer<typeof DeleteEnvironmentSchema>
+
+// Schema 4: Deleting an Environment (by id, used by the dashboard button)
+export const DeleteEnvironmentByIdSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+})
+
+export type DeleteEnvironmentByIdInput = z.infer<typeof DeleteEnvironmentByIdSchema>
